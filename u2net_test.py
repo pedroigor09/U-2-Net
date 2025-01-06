@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-
 import numpy as np
 from PIL import Image
 import glob
@@ -15,7 +14,6 @@ import glob
 from data_loader import RescaleT, ToTensor, ToTensorLab, SalObjDataset
 from model import U2NET, U2NETP
 
-# Normalize the predicted SOD probability map
 def normPRED(d):
     ma = torch.max(d)
     mi = torch.min(d)
@@ -45,9 +43,7 @@ def save_output(image_name, pred, d_dir):
 
 def main():
     try:
-        # --------- 1. get image path and name ---------
-        model_name = 'u2net'  # or 'u2netp'
-        print("Iniciando o script de remoção de fundo")
+        model_name = 'u2net'
 
         image_dir = os.path.join(os.getcwd(), 'test_data', 'test_images')
         prediction_dir = os.path.join(os.getcwd(), 'test_data', model_name + '_results' + os.sep)
@@ -56,7 +52,6 @@ def main():
         img_name_list = glob.glob(image_dir + os.sep + '*')
         print(f"Lista de imagens: {img_name_list}")
 
-        # --------- 2. dataloader ---------
         test_salobj_dataset = SalObjDataset(
             img_name_list=img_name_list,
             lbl_name_list=[],
@@ -65,7 +60,6 @@ def main():
         test_salobj_dataloader = DataLoader(test_salobj_dataset, batch_size=1, shuffle=False, num_workers=1)
         print("DataLoader configurado")
 
-        # --------- 3. model define ---------
         if model_name == 'u2net':
             print("...load U2NET---173.6 MB")
             net = U2NET(3, 1)
@@ -81,7 +75,6 @@ def main():
         net.eval()
         print("Modelo carregado e configurado")
 
-        # --------- 4. inference for each image ---------
         for i_test, data_test in enumerate(test_salobj_dataloader):
             print(f"Inferenciando: {img_name_list[i_test].split(os.sep)[-1]}")
 
@@ -95,11 +88,9 @@ def main():
 
             d1, d2, d3, d4, d5, d6, d7 = net(inputs_test)
 
-            # normalization
             pred = d1[:, 0, :, :]
             pred = normPRED(pred)
 
-            # save results to test_results folder
             if not os.path.exists(prediction_dir):
                 os.makedirs(prediction_dir, exist_ok=True)
             save_output(img_name_list[i_test], pred, prediction_dir)
